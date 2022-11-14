@@ -9,13 +9,11 @@ class KeyMap:
         self.func_when_pressed = func_when_pressed
         self.func_when_released = func_when_released
         self.is_pressed = False
-        self.is_released = True
 
         keyboard.on_press_key(self.key, self.call_when_pressed)
         keyboard.on_release_key(self.key, self.call_when_released)
 
     def call_when_pressed(self, event, *args):
-        self.is_released = False
         result = None
         if not self.is_pressed:
             result = self.func_when_pressed(*args)
@@ -23,11 +21,10 @@ class KeyMap:
         return result
 
     def call_when_released(self, event, *args):
-        self.is_pressed = False
         result = None
-        if not self.is_released:
+        if self.is_pressed:
             result = self.func_when_released(*args)
-            self.is_released = True
+            self.is_pressed = False
         return result
 
     def __eq__(self, other):
