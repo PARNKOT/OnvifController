@@ -44,7 +44,7 @@ class OnvifAbsoluteMove:
         self.__pan = 0
         self.__tilt = 0
         self.__zoom = 0
-        self.__step = 0
+        self.__step = 0.005
         self.zoom_max = zoom_max - 1
         self._lens_focus_mode = None
         self.is_active = False
