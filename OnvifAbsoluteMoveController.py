@@ -45,6 +45,9 @@ class OnvifAbsoluteMoveController:
     def connect(self, ip_addr: str, port: int, user: str, password: str):
         self.__onvif_abs_move.connect(ip_addr, port, user, password)
 
+    def delete_hotkeys(self):
+        del self.__keyboard_controller
+
     def configure_keyboard(self):
         self.__keyboard_controller.add_key_map('w', self.__onvif_abs_move.increase_tilt, None, once_call=False)
         self.__keyboard_controller.add_key_map('s', self.__onvif_abs_move.decrease_tilt, None, once_call=False)
