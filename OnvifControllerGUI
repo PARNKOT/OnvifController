@@ -2,42 +2,57 @@ import threading
 import time
 import tkinter as tk
 from tkinter import ttk
-from PIL import ImageTk, Image
 
-from rtsp import RtspStreamer
+from rtsp import RtspStreamer, ImageSettings
 from OnvifAbsoluteMoveController import OnvifAbsoluteMoveController
+from utils import read_settings
 
 
 class GuiOptions:
-    app_width = 1080
-    app_height = 720
+    app_width = 1200
+    app_height = 600
 
 
-IP = "10.1.1.14"  # Camera IP address
-PORT = 80  # Port
-USER = "admin"  # Username
-PASSWORD = "Pa$$w0rd"  # Password
-URI = f"rtsp://{USER}:{PASSWORD}@{IP}/Streaming/Channels/101"
-
-
-class App(tk.Tk):
-    def __init__(self):
+class OnvifCamera(tk.Tk):
+    def __init__(self, ip, port, login, password):
         super().__init__()
 
-        self.image = None
+        self.ip = ip
+        self.port = port
+        self.login = login
+        self.password = password
+        self.rtsp_uri = f"rtsp://{login}:{password}@{ip}/Streaming/Channels/101"
 
+        # App settings
         self.maxsize(width=GuiOptions.app_width, height=GuiOptions.app_height)
-
-        ttk.Style().theme_use("default")
-        ttk.Style().configure('Control.TFrame', background='green')
-        ttk.Style().configure('Video.TFrame', background='red')  # #f5f5f5
-        ttk.Style().configure('Sep.TSeparator', background='black')
-
         self.title("Onvif Controller")
         self.geometry(f"{GuiOptions.app_width}x{GuiOptions.app_height}")
-        #self.resizable()
+        self.wm_protocol("WM_DELETE_WINDOW", self.on_close)
 
-        self.frame_control = ttk.Frame(self, padding=10,style="Control.TFrame",
+        # threads
+        self.video_read_event = None
+        self.rtsp_streamer = None
+        self.video_capture_thread = None
+
+        # widgets
+        self.frame_control: ttk.Frame
+        self.frame_video_stream: ttk.Frame
+        self.separator1: ttk.Separator
+        self.panel: tk.Label
+
+        # styles
+        ttk.Style().theme_use("default")
+        ttk.Style().configure('Control.TFrame', background='green')
+        ttk.Style().configure('Video.TFrame', background='#f5f5f5')  # '#f5f5f5'
+        ttk.Style().configure('Sep.TSeparator', background='black')
+
+        # init widgets and threads
+        self.__init_widgets()
+        self.__pack_widgets()
+        self.__init_threads()
+
+    def __init_widgets(self):
+        self.frame_control = ttk.Frame(self, padding=10, style="Control.TFrame",
                                        **self.calculate_frame_control_geometry())
         self.frame_control.propagate(False)
 
@@ -47,68 +62,61 @@ class App(tk.Tk):
 
         self.separator1 = ttk.Separator(self, orient=tk.VERTICAL, style="Sep.TSeparator")
 
-        self.frame_control.pack(side=tk.LEFT)
+        self.panel = tk.Label(self.frame_video_stream)
+
+    def __init_threads(self):
+        self.video_read_event = threading.Event()
+        self.video_read_event.set()
+
+        self.rtsp_streamer = RtspStreamer(self.rtsp_uri, scale=0.5)
+        self.rtsp_streamer.start()
+
+        self.video_capture_thread = threading.Thread(target=self.display_video, name="Image display")
+        self.video_capture_thread.start()
+
+    def __pack_widgets(self):
+        self.frame_control.pack(side=tk.LEFT, anchor=tk.NW)
         self.separator1.pack(side=tk.LEFT, fill=tk.BOTH)
         self.frame_video_stream.pack(side=tk.LEFT)
+        self.panel.pack(anchor=tk.W)
 
-        self.panel = tk.Label(self.frame_video_stream)#, height=300, width=400)
-        self.panel.pack()
-
-        #self.canvas = tk.Canvas(self.frame_video_stream, **self.calculate_frame_video_stream_geometry())
-        #.canvas.pack()
-        #self.canvas.create_image(image=rtsp_streamer.get_image())
-
-    def calculate_frame_control_geometry(self):
+    @staticmethod
+    def calculate_frame_control_geometry():
         return {"width": GuiOptions.app_width * 0.20, "height": GuiOptions.app_height*0.3}
 
-    def calculate_frame_video_stream_geometry(self):
+    @staticmethod
+    def calculate_frame_video_stream_geometry():
         return {"width": GuiOptions.app_width * 0.80, "height": GuiOptions.app_height}
 
     def display_video(self):
-        while True:
+        while self.video_read_event.is_set():
             try:
-                self.image = rtsp_streamer.get_as_tkinter_image()
-                self.panel.configure(image=self.image)
+                image = self.rtsp_streamer.get_as_tkinter_image()
+                self.panel.configure(image=image)
+                self.panel.image = image
             except:
                 print("Couldn't display image")
 
     def run(self):
-        threading.Thread(target=self.display_video, name="Image display").start()
         self.mainloop()
+
+    def on_close(self):
+        self.video_read_event.clear()
+        self.rtsp_streamer.stop()
+        print("Quit")
+        self.quit()
 
 
 if __name__ == "__main__":
-'''
-    rtsp_streamer = RtspStreamer(URI, scale=0.5)
-    rtsp_streamer.start()
-    time.sleep(2)
-    img = rtsp_streamer.get_image()
-    print(img)
+    settings = read_settings("security.txt")
 
-    # Rearrang the color channel
-    #b, g, r = cv2.split(img)
-    #img = cv2.merge((r, g, b))
+    ip = settings["ip"]
+    port = settings["port"]
+    login = settings["login"]
+    password = settings["password"]
 
-    # A root window for displaying objects
-    root = tk.Tk()
-
-    # Convert the Image object into a TkPhoto object
-    im = Image.fromarray(img)
-    imgtk = ImageTk.PhotoImage(image=im)
-
-    # Put it in the display window
-    tk.Label(root, image=imgtk).pack()
-    
-    root.mainloop()  # Start the GUI
-'''
-
-    rtsp_streamer = RtspStreamer(URI, scale=0.5)
     onvif_controller = OnvifAbsoluteMoveController()
-    onvif_controller.connect(IP, PORT, USER, PASSWORD)
-    app = App()
-
-    rtsp_streamer.start()
+    onvif_controller.connect(ip, port, login, password)
+    app = OnvifCamera(ip, port, login, password)
     app.run()
-
-    rtsp_streamer.stop()
 
