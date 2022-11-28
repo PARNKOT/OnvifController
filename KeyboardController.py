@@ -1,4 +1,3 @@
-import time
 import typing
 import keyboard
 
@@ -66,11 +65,6 @@ class KeyboardController:
 
 
 if __name__ == "__main__":
-    #keyboard.add_hotkey("w+d", lambda: print("w+d is pressed"))
-    #keyboard.add_hotkey("w+d", lambda: print("w+d is pressed"), suppress=True)
-    #keyboard.hook(lambda x: print("w+d is pressed", x), True)
-    #while True:
-    #    pass
     controller = KeyboardController()
     controller.add_key_map('w', lambda: print("w pressed :)"), None)
     controller.loop()
