@@ -84,18 +84,11 @@ if __name__ == "__main__":
     password = settings["password"]
 
     uri = f"rtsp://{login}:{password}@{ip}/Streaming/Channels/101"
-    #bgs_method = cv2.createBackgroundSubtractorGSOC()
 
     streamer = RtspStreamer(uri, scale=0.5)
     streamer.start()
     while True:
         if streamer.success:
             image = streamer.get_image()
-            #foreground_mask = bgs_method.apply(image)
-            #background_img = bgs_method.getBackgroundImage()
-
             cv2.imshow("Frame", image)
-            #cv2.imshow("Foreground", foreground_mask)
-            #cv2.imshow("Background", background_img)
             cv2.waitKey(1)
-            #time.sleep(0.1)
