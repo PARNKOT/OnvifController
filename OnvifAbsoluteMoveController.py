@@ -1,11 +1,6 @@
 from OnvifAbsoluteMove import OnvifAbsoluteMove
 from KeyboardController import KeyboardController
-from functools import partial
-
-IP = "10.1.1.14"  # Camera IP address
-PORT = 80  # Port
-USER = "admin"  # Username
-PASSWORD = "Pa$$w0rd"  # Password
+from utils import read_settings
 
 
 class OnvifAbsoluteMoveController:
@@ -65,7 +60,14 @@ class OnvifAbsoluteMoveController:
 
 
 if __name__ == "__main__":
+    settings = read_settings("security.txt")
+
+    ip = settings["ip"]
+    port = settings["port"]
+    login = settings["login"]
+    password = settings["password"]
+
     onvif_controller = OnvifAbsoluteMoveController()
-    onvif_controller.connect(IP, PORT, USER, PASSWORD)
+    onvif_controller.connect(ip, port, login, password)
     onvif_controller.step = 0.005
     onvif_controller.run_loop()
