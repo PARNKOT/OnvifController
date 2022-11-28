@@ -70,6 +70,7 @@ class OnvifAbsoluteMove:
 
     @property
     def step(self):
+        #step = self.__step_min + 0.099 * (1 - self.zoom//self.zoom_max)
         return self.__step
 
     @step.setter
@@ -89,9 +90,6 @@ class OnvifAbsoluteMove:
     def setup(self):
         media_profile = self.__media.GetProfiles()[0]
         video_source_token = self.__media.GetVideoSources()[0].token
-        #request = self.__ptz.create_type("GetConfigurationOptions")
-        #request.ConfigurationToken = media_profile.PTZConfiguration.token
-        #ptz_configuration_options = self.__ptz.GetConfigurationOptions(request)
 
         self.__request = self.__ptz.create_type("AbsoluteMove")
         self.__request.ProfileToken = media_profile.token
@@ -188,12 +186,11 @@ if __name__ == "__main__":
 
     print(f"Pan: {onvif_abs_move.pan}, Tilt: {onvif_abs_move.tilt}, Zoom: {onvif_abs_move.zoom}")
 
-    keyboard_controller.add_key_map('w', onvif_abs_move.increase_tilt, onvif_abs_move.stop_move, once_call=False)
-    keyboard_controller.add_key_map('s', onvif_abs_move.decrease_tilt, onvif_abs_move.stop_move, once_call=False)
-    keyboard_controller.add_key_map('a', onvif_abs_move.decrease_pan, onvif_abs_move.stop_move, once_call=False)
-    keyboard_controller.add_key_map('d', onvif_abs_move.increase_pan, onvif_abs_move.stop_move, once_call=False)
-    keyboard_controller.add_key_map('r', onvif_abs_move.increase_zoom, onvif_abs_move.stop_move, once_call=False)
-    keyboard_controller.add_key_map('q', onvif_abs_move.decrease_zoom, onvif_abs_move.stop_move, once_call=False)
+    keyboard_controller.add_key_map('w', onvif_abs_move.increase_tilt, once_call=False)
+    keyboard_controller.add_key_map('s', onvif_abs_move.decrease_tilt, once_call=False)
+    keyboard_controller.add_key_map('a', onvif_abs_move.decrease_pan, once_call=False)
+    keyboard_controller.add_key_map('d', onvif_abs_move.increase_pan, once_call=False)
+    keyboard_controller.add_key_map('r', onvif_abs_move.increase_zoom, once_call=False)
+    keyboard_controller.add_key_map('q', onvif_abs_move.decrease_zoom, once_call=False)
     keyboard_controller.loop()
-    #print(f"Pan: {onvif_abs_move.pan}, Tilt: {onvif_abs_move.tilt}")
-    #onvif_abs_move.tilt = -0.8 #degrees_to_proportion()
+
