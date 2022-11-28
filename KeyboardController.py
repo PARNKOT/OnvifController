@@ -44,6 +44,34 @@ class KeyMap:
         return self.key == other.key
 
 
+class KeyMapHook:
+    def __init__(self, key: str, func_when_pressed: typing.Callable, once_call_press=True):
+        self.key = key
+        self.func_when_pressed = func_when_pressed if func_when_pressed else self.stub
+        self.once_call_press = once_call_press
+        self.is_pressed = False
+
+        keyboard.hook_key(key, self.call)
+        #keyboard.on_press_key(self.key, self.call_when_pressed, suppress=True)
+        #keyboard.on_release_key(self.key, self.call_when_released, suppress=True)
+
+    @staticmethod
+    def stub(*args):
+        pass
+
+    def call(self, event):
+        if event.event_type == "down" and not self.is_pressed and self.once_call_press:
+            self.func_when_pressed()
+            self.is_pressed = True
+        elif event.event_type == "up":
+            self.is_pressed = False
+        elif not self.once_call_press:
+            self.func_when_pressed()
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+
 class KeyboardController:
     def __init__(self):
         self.__key_maps = []
@@ -55,9 +83,12 @@ class KeyboardController:
 
     def add_key_map(self, key: str,
                     func_pressed: typing.Optional[typing.Callable],
-                    func_released: typing.Optional[typing.Callable],
                     once_call=True):
-        self.__key_maps.append(KeyMap(key, func_pressed, func_released, once_call_press=once_call))
+        self.__key_maps.append(KeyMapHook(key, func_pressed, once_call_press=once_call))
+
+    def delete_keymaps(self):
+        keyboard.unhook_all()
+        self.__key_maps.clear()
 
     def loop(self):
         while self.is_loop_started:
@@ -65,6 +96,9 @@ class KeyboardController:
 
 
 if __name__ == "__main__":
+    #keyboard.hook_key("w", lambda x: print(f"{x.event_type} pressed"))
+    #while True:
+    #    pass
     controller = KeyboardController()
-    controller.add_key_map('w', lambda: print("w pressed :)"), None)
+    controller.add_key_map('w', lambda: print("w pressed :)"))
     controller.loop()
