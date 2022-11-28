@@ -7,6 +7,7 @@ from PIL import ImageTk, Image
 
 from utils import read_settings
 
+
 class RtspStreamer(threading.Thread):
     def __init__(self, uri: str, delay: float = 0.0, scale: float = 1.0):
         super().__init__(target=self.process, name="Rtsp streamer")
@@ -84,11 +85,18 @@ if __name__ == "__main__":
     password = settings["password"]
 
     uri = f"rtsp://{login}:{password}@{ip}/Streaming/Channels/101"
+    #bgs_method = cv2.createBackgroundSubtractorGSOC()
 
     streamer = RtspStreamer(uri, scale=0.5)
     streamer.start()
     while True:
         if streamer.success:
             image = streamer.get_image()
+            #foreground_mask = bgs_method.apply(image)
+            #background_img = bgs_method.getBackgroundImage()
+
             cv2.imshow("Frame", image)
+            #cv2.imshow("Foreground", foreground_mask)
+            #cv2.imshow("Background", background_img)
             cv2.waitKey(1)
+
