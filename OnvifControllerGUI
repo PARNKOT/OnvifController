@@ -3,6 +3,8 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
+from onvif import ONVIFError
+
 from rtsp import RtspStreamer, ImageSettings
 from OnvifAbsoluteMoveController import OnvifAbsoluteMoveController
 from utils import read_settings
@@ -10,18 +12,22 @@ from utils import read_settings
 
 class GuiOptions:
     app_width = 1200
-    app_height = 600
+    app_height = 620
 
 
 class OnvifCamera(tk.Tk):
-    def __init__(self, ip, port, login, password):
+    def __init__(self, ip="", port=80, login="", password=""):
         super().__init__()
+
+        self.onvif_controller = OnvifAbsoluteMoveController()
+        #self.onvif_controller.connect(ip, port, login, password)
 
         self.ip = ip
         self.port = port
         self.login = login
         self.password = password
         self.rtsp_uri = f"rtsp://{login}:{password}@{ip}/Streaming/Channels/101"
+        self.__connected = False
 
         # App settings
         self.maxsize(width=GuiOptions.app_width, height=GuiOptions.app_height)
@@ -37,14 +43,22 @@ class OnvifCamera(tk.Tk):
         # widgets
         self.frame_control: ttk.Frame
         self.frame_video_stream: ttk.Frame
+        self.frame_connection: ttk.Frame
         self.separator1: ttk.Separator
         self.panel: tk.Label
+        self.connection_entry: ttk.Entry
+        self.connect_camera: ttk.Button
+        self.disconnect_camera: ttk.Button
+
+        # variables
+        self.connection_string: tk.StringVar()
 
         # styles
         ttk.Style().theme_use("default")
         ttk.Style().configure('Control.TFrame', background='green')
         ttk.Style().configure('Video.TFrame', background='#f5f5f5')  # '#f5f5f5'
         ttk.Style().configure('Sep.TSeparator', background='black')
+        ttk.Style().configure('Connection.TFrame', background='red')
 
         # init widgets and threads
         self.__init_widgets()
@@ -52,6 +66,10 @@ class OnvifCamera(tk.Tk):
         self.__init_threads()
 
     def __init_widgets(self):
+        # variables
+        self.connection_string = tk.StringVar(value="10.1.1.14/80/admin/Pa$$w0rd")
+
+        # widgets
         self.frame_control = ttk.Frame(self, padding=10, style="Control.TFrame",
                                        **self.calculate_frame_control_geometry())
         self.frame_control.propagate(False)
@@ -64,12 +82,18 @@ class OnvifCamera(tk.Tk):
 
         self.panel = tk.Label(self.frame_video_stream)
 
+        self.frame_connection = ttk.Frame(self.frame_video_stream, padding=10, style="Connection.TFrame")
+        #self.frame_connection.propagate(False)
+        self.connection_entry = ttk.Entry(self.frame_connection, textvariable=self.connection_string, width=50)
+        self.connect_camera = ttk.Button(self.frame_connection, command=self.connect, text="Connect")
+        self.disconnect_camera = ttk.Button(self.frame_connection, command=self.disconnect, text="Disconnect")
+
     def __init_threads(self):
         self.video_read_event = threading.Event()
         self.video_read_event.set()
 
-        self.rtsp_streamer = RtspStreamer(self.rtsp_uri, scale=0.5)
-        self.rtsp_streamer.start()
+        #self.rtsp_streamer = RtspStreamer(self.rtsp_uri, scale=0.5)
+        #self.rtsp_streamer.start()
 
         self.video_capture_thread = threading.Thread(target=self.display_video, name="Image display")
         self.video_capture_thread.start()
@@ -78,7 +102,13 @@ class OnvifCamera(tk.Tk):
         self.frame_control.pack(side=tk.LEFT, anchor=tk.NW)
         self.separator1.pack(side=tk.LEFT, fill=tk.BOTH)
         self.frame_video_stream.pack(side=tk.LEFT)
-        self.panel.pack(anchor=tk.W)
+
+        self.frame_connection.pack(side=tk.TOP)
+        self.panel.pack(side=tk.TOP)
+
+        self.connection_entry.pack(side=tk.LEFT, padx=10)
+        self.connect_camera.pack(side=tk.LEFT, padx=10)
+        self.disconnect_camera.pack(side=tk.LEFT, padx=10)
 
     @staticmethod
     def calculate_frame_control_geometry():
@@ -96,6 +126,34 @@ class OnvifCamera(tk.Tk):
                 self.panel.image = image
             except:
                 print("Couldn't display image")
+
+    def connect(self):
+        try:
+            self.ip, self.port, self.login, self.password = self.try_parse_connection_string()
+            self.rtsp_uri = f"rtsp://{login}:{password}@{ip}/Streaming/Channels/101"
+            self.onvif_controller.connect(self.ip, self.port, self.login, self.password)
+            #time.sleep(2)
+            self.rtsp_streamer = RtspStreamer(self.rtsp_uri, scale=0.5)
+            self.rtsp_streamer.start()
+            self.__connected = True
+            print(f"Connected {self.rtsp_uri}")
+        except ValueError as e:
+            print("Parsing connection string error")
+        except ONVIFError as e:
+            print(e)
+        except Exception as e:
+            print(e)
+            print("Unknown error")
+            #print("Connection error. Check connection string")
+
+    def disconnect(self):
+        self.onvif_controller.disconnect()
+        self.rtsp_streamer.stop()
+        self.__connected = False
+        print(f"Disconnected")
+
+    def try_parse_connection_string(self):
+        return self.connection_string.get().split("/")
 
     def run(self):
         self.mainloop()
@@ -115,8 +173,10 @@ if __name__ == "__main__":
     login = settings["login"]
     password = settings["password"]
 
-    onvif_controller = OnvifAbsoluteMoveController()
-    onvif_controller.connect(ip, port, login, password)
     app = OnvifCamera(ip, port, login, password)
     app.run()
+
+
+
+
 
