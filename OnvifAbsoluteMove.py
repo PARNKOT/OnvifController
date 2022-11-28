@@ -3,11 +3,8 @@ import time
 
 from onvif import ONVIFCamera
 from KeyboardController import KeyboardController
+from utils import read_settings
 
-IP = "10.1.1.14"  # Camera IP address
-PORT = 80  # Port
-USER = "admin"  # Username
-PASS = "Pa$$w0rd"  # Password
 
 STEP = 0.005
 
@@ -176,9 +173,16 @@ class OnvifAbsoluteMove:
 
 
 if __name__ == "__main__":
+    settings = read_settings("security.txt")
+
+    ip = settings["ip"]
+    port = settings["port"]
+    login = settings["login"]
+    password = settings["password"]
+
     keyboard_controller = KeyboardController()
     onvif_abs_move = OnvifAbsoluteMove(36)
-    onvif_abs_move.connect(IP, PORT, USER, PASS)
+    onvif_abs_move.connect(ip, port, login, password)
     onvif_abs_move.step = 0.005
     onvif_abs_move.set_autofocus()
 
