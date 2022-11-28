@@ -1,10 +1,7 @@
 from onvif import ONVIFCamera
 from KeyboardController import KeyboardController
+from utils import read_settings
 
-IP = "10.1.1.14"  # Camera IP address
-PORT = 80  # Port
-USER = "admin"  # Username
-PASS = "Pa$$w0rd"  # Password
 SPEED = 0.75  # 0...1
 
 
@@ -95,8 +92,15 @@ class OnvifContinuousMove:
 
 
 if __name__ == "__main__":
+    settings = read_settings("security.txt")
+
+    ip = settings["ip"]
+    port = settings["port"]
+    login = settings["login"]
+    password = settings["password"]
+
     controller = KeyboardController()
-    onvif_controller = OnvifContinuousMove(IP, PORT, USER, PASS)
+    onvif_controller = OnvifContinuousMove(ip, port, login, password)
 
     controller.add_key_map('w', onvif_controller.move_up, onvif_controller.stop_move)
     controller.add_key_map('s', onvif_controller.move_down, onvif_controller.stop_move)
